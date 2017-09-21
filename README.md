@@ -26,7 +26,7 @@
 
 	php xxx.php mongodb_user_messages /tmp/af-conf/anfeng/dev/mongodb/sdk/user_messages/2.json
 
-此时在`xxx.php`脚本中通过argv[1]能拿到`path.[key]`中的`key`，argv[2]能拿到配置文件的路径
+此时在`xxx.php`脚本中通过argv[1]能拿到`path.[key]`中的`key`，argv[2]能拿到配置文件的路径，脚本在调用成功之后必须输出`SUCCESS`并返回状态码`0`，否则将会每隔`60`秒重试
 
 ### 启动监听脚本
 
