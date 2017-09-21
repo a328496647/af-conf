@@ -1,5 +1,5 @@
 # af-conf
-项目配置集中化管理工具，通过监听zookeeper节点的变化去调用预设的脚本文件实现能配置的更新。zookeeper项目地址：[http://zookeeper.apache.org/](http://zookeeper.apache.org/)
+项目配置集中化管理工具，通过监听zookeeper节点的变化去调用预设的脚本实现配置的更新，每个项目可以根据自身所需去订阅不同的配置项。zookeeper项目地址：[http://zookeeper.apache.org/](http://zookeeper.apache.org/)
 
 ## 使用方法
 本工具由python编写，无特殊依赖库，下载即用。
@@ -20,7 +20,7 @@
 
 1. `command` 如果配置文件有更新，则调用该shell命令
 2. `chdir` 调用命令之前先cd到该目录
-3. `path.[key]` 要监听的配置文件（zookeeper节点）
+3. `path.[key]` 要订阅的配置文件（zookeeper节点）
 
 当监听到配置文件有更改时，会将配置文件的内容保存为文件，并将文件路径和`path.[key]`中的`key`传递给`command`脚本，例如：
 
@@ -42,7 +42,7 @@
 2. `-o, output` 当监听到配置文件发生变化时，将配置文件何存在何处
 3. `-h, help` 显示帮助
 
-示例：
+示例（项目目录下有一个demo）：
 
 	python ./../af-conf.py --server=127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
 
