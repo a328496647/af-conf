@@ -18,7 +18,7 @@
 	path.mongodb_logs = /anfeng/dev/mongodb/sdk/logs
 	path.redis_default = /anfeng/dev/redis/sdk/default
 
-1. `command` 如何配置文件有更新，则调用该shell命令
+1. `command` 如果配置文件有更新，则调用该shell命令
 2. `chdir` 调用命令之前先cd到该目录
 3. `path.[key]` 要监听的配置文件（zookeeper节点）
 
