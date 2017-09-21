@@ -44,7 +44,7 @@
 
 示例：
 
-	python /usr/local/af-conf/af-conf.py --server=127.0.0.1:2181 -o /tmp/conf ./af-conf.conf
+	python ./../af-conf.py --server=127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
 
 
 
