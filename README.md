@@ -2,7 +2,10 @@
 项目配置集中化管理工具，通过监听zookeeper节点的变化去调用预设的脚本实现配置的更新，每个项目可以根据自身所需去订阅不同的配置项。zookeeper项目地址：[http://zookeeper.apache.org/](http://zookeeper.apache.org/)
 
 ## 使用方法
-本工具由python编写，无特殊依赖库，下载即用。
+本工具由python编写，除了zookeeper包，其它无特殊依赖库。zookeeper包使用的是：
+
+	// zkpython 0.4.2
+	https://pypi.python.org/pypi/zkpython/
 
 ### 设置要监听配置
 配置文件使用`.ini`文件，示例如下：
