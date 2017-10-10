@@ -10,12 +10,6 @@ import getopt
 import subprocess
 import Queue
 
-from email import encoders
-from email.header import Header
-from email.mime.text import MIMEText
-from email.utils import parseaddr, formataddr
-import smtplib
-
 G = {
     'output': '.',
     'server': '127.0.0.1:2181',
@@ -48,49 +42,32 @@ def command(cmd, args = [], chdir = None, timeout = 10):
         time.sleep(0.1)
         if timestamp + timeout <= int(time.time()):
             childprocess.terminate()
-            log('command-timeout', {'cmd': cmd, 'chdir': chdir, 'timeout': timeout}, 'ERROR')
+            log('command:timeout', {'cmd': cmd, 'chdir': chdir, 'timeout': timeout}, 'ERROR')
             return False
     
     childprocess.wait()
     
     code = childprocess.returncode
     text = childprocess.stdout.read()
-    
+
+    log('command', {'cmd': cmd, 'chdir': chdir, 'returncode': code, 'text': text}, 'DEBUG')
+
+    return (code, text)
+
+def conf_command(cmd, args, chdir):
+    result = command(cmd, args, chdir, 10)
+
+    code = result[0]
+    text = result[1]
+
     if text != 'SUCCESS' or code != 0:
-        log('command-fail', {'cmd': cmd, 'chdir': chdir, 'timeout': timeout, 'returncode': code, 'text': text}, 'ERROR')
-        sendmail('af-conf error', 'cmd: %s\ncode: %d\noutput: %s' % (cmd, code, text))
+        log('command:conf:fail', {'cmd': cmd, 'chdir': chdir, 'returncode': code, 'text': text}, 'ERROR')
         return False
     else:
-        log('command', {'cmd': cmd, 'chdir': chdir, 'timeout': timeout, 'returncode': code, 'text': text}, 'DEBUG')
         return True
-        
-def sendmail(title, content):
-    if not G['config'].has_key('mail'):
-        return False
-        
-    config = G['config']['mail']
-
-    if config.has_key('enable') and not config['enable']:
-        return False
-
-    log('sendmail', {'to': config['receiver'], 'title': title, 'content': content}, 'DEBUG')
-
-    msg = MIMEText(content, 'plain', 'utf-8')
-    msg['From'] = '%s <%s>' % (config['name'], config['address'])
-    msg['To'] = ','.join(config['receiver'])
-    msg['Subject'] = title
-    
-    if config['encrypt'] == 'ssl':
-        smtp = smtplib.SMTP_SSL(config['smtp_host'], int(config['smtp_port']))
-    else:
-        smtp = smtplib.SMTP(config['smtp_host'], int(config['smtp_port']))
-
-    smtp.login(config['username'], config['password'])
-    smtp.sendmail(config['address'], config['receiver'], msg.as_string())
-    smtp.quit()
 
 def zookeeper_node_change(nodevalue, path):
-    log('zookeeper-get', {'path': path, 'res': nodevalue[1]}, 'DEBUG')
+    log('zookeeper:get', {'path': path, 'res': nodevalue[1]}, 'DEBUG')
 
     version = nodevalue[1]['version']
     file = os.path.abspath(G['output'] + path + os.sep + str(version) + '.json')
@@ -98,11 +75,11 @@ def zookeeper_node_change(nodevalue, path):
     
     G['nodever'][path] = version
 
-    log('write-file', {'file': file}, 'DEBUG')
+    log('write:file', {'file': file}, 'DEBUG')
 
     for project in G['project'][path]:
         qdata = {
-            'type': 'cmd', 
+            'type': 'conf_command', 
             'cmd': project['command'], 
             'args': [project['key'], file], 
             'path': path, 
@@ -142,17 +119,28 @@ def watcher(zk, type, state, path):
             if zookeeper.exists(zk, '/af-conf', watcher):
                 try:
                     G['config'] = json.loads(zookeeper.get(zk, '/af-conf')[0])
-                    log('config', G['config'], 'DEBUG')
+                    if not isinstance(G['config'], dict):
+                        raise Exception()
                 except Exception as e:
-                    print '"/af-conf" not valid json format'
+                    log('config:error', '"/af-conf" is invalid format', 'ERROR')
+                    return
+
+                log('config', G['config'], 'DEBUG')
     elif type == zookeeper.CREATED_EVENT or type == zookeeper.CHANGED_EVENT:
         nodevalue = zookeeper.get(zk, path, watcher)
         if path == '/af-conf':
             try:
                 G['config'] = json.loads(nodevalue[0])
-                log('config', G['config'], 'DEBUG')
+                if not isinstance(G['config'], dict):
+                    raise Exception()
             except Exception as e:
-                print '"/af-conf" not valid json format'
+                log('config:error', '"/af-conf" is invalid format', 'ERROR')
+                return
+
+            log('config', G['config'], 'DEBUG')
+
+            if G['config'].has_key('restart') and G['config']['restart'] == True:
+                G['queue'].put((0, {'type': 'restart'}))
         else:
             zookeeper_node_change(nodevalue, path)
     elif type == zookeeper.DELETED_EVENT:
@@ -221,7 +209,7 @@ try:
         priority = qitem[0]
         data = qitem[1]
         timestamp = int(time.time())
-        result = False
+        result = True
 
         if priority > 0 and priority > timestamp:
             time.sleep(1)
@@ -230,11 +218,15 @@ try:
             
         log('queue', qitem, 'DEBUG')
 
-        if data['type'] == 'cmd':
+        # execute conf-command
+        if data['type'] == 'conf_command':
             if data['version'] < G['nodever'][data['path']]:
                 continue
-
-            result = command(data['cmd'], data['args'], data['chdir'])
+            result = conf_command(data['cmd'], data['args'], data['chdir'])
+        # restart process
+        elif data['type'] == 'restart':
+            python = sys.executable
+            os.execl(python, python, * sys.argv)
 
         if not result:
             if data.has_key('num'):
@@ -245,11 +237,12 @@ try:
             G['queue'].put((timestamp + 60, data))
 
 except KeyboardInterrupt, e:
-    print 'quit'
+    pass
 except Exception, e:
     raise e
 finally:
     if G['zookeeper'] != None:
         zookeeper.close(G['zookeeper'])
 
+log('quit', [], 'DEBUG')
 sys.exit(0)

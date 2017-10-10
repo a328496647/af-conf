@@ -22,7 +22,7 @@
 	path.redis_default = /anfeng/dev/redis/sdk/default
 
 1. `command` 如果配置文件有更新，则调用该shell命令
-2. `chdir` 调用命令之前先cd到该目录
+2. `chdir` 调用命令之前先chdir到该目录
 3. `path.[key]` 要订阅的配置文件（zookeeper节点）
 
 当监听到配置文件有更改时，会将配置文件的内容保存为文件，并将文件路径和`path.[key]`中的`key`传递给`command`脚本，例如：
@@ -49,33 +49,11 @@
 
 	python ./../af-conf.py --server=127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
 
-
-
-### 报警设置
-当配置文件发生更改，调用通知脚本（`command`）时，脚本没有调用成功怎么办？只需在zookeeper中增加一个根节点为：`/af-conf`，其中增加`mail`配置（json格式），即可在发生错误时邮件通知。节点值示例如下：
+## 进程自身的配置
+`af-conf`解决的问题就是集中管理多台服务器上的配置文件，那么`af-conf`本身的配置怎么去管理？`af-conf`自身的配置也是通过zookeeper节点来设置，它的zookeeper节点名称为：`/af-conf`，节点值为json格式。
 
 	{
-	    "mail":{
-	        "enable":false,
-	        "smtp_host":"smtp.exmail.qq.com",
-	        "smtp_port":465,
-	        "encrypt":"ssl",
-	        "username":"xxx@anfan.com",
-	        "password":"xxx",
-	        "address":"xxx@anfan.com",
-	        "name":"af-conf alarm",
-	        "receiver":[
-	            "sss60@qq.com"
-	        ]
-	    }
-	}
+		"restart":true
+	｝
 
-1. `mail.enable` 是否启用邮件报警
-2. `mail.smtp_host` smtp邮件服务器Host
-3. `mail.smtp_port` smtp邮件服务器Port
-4. `mail.encrypt` 网络加密类型，`ssl`或空
-5. `mail.username` smtp邮件服务器登陆用户名
-6. `mail.password` smtp邮件服务器登陆密码
-7. `mail.address` 发件人邮件地址
-8. `mail.name` 发件人名字
-9. `mail.receiver` 收件人（警报接收人）列表
+1. `restart`，如果标记为true，则`af-conf`进程本身会被重启
