@@ -139,6 +139,7 @@ def watcher(zk, type, state, path):
 
             log('config', G['config'], 'DEBUG')
 
+            # restart process
             if G['config'].has_key('restart') and G['config']['restart'] == True:
                 G['queue'].put((0, {'type': 'restart'}))
         else:

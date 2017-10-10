@@ -1,5 +1,8 @@
-# af-conf
-项目配置集中化管理工具，通过监听zookeeper节点的变化去调用预设的脚本实现配置的更新，每个项目可以根据自身所需去订阅不同的配置项。zookeeper项目地址：[http://zookeeper.apache.org/](http://zookeeper.apache.org/)
+## af-conf
+项目配置集中管理工具。通过监听zookeeper([http://zookeeper.apache.org/](http://zookeeper.apache.org/))节点的变化去调用预设的脚本，脚本再去修改配置文件。脚本不光可以修改项目配置，还能执行命令，于是`af-conf`摇身一变成了一个在多台机器同时执行命令的工具，比如用户来发布项目代码
+
+## `af-conf`应用场景
+假设有2两个项目，一个面向用户的web网站，一个面向公司内部的erp系统，由于公司业务庞大这些项目集群化部署在很多台机器上，这些项目都连接了同一个DB，假如有一天发现DB密码泄漏需要修改DB密码。此时总不能跑到每台机器上挨个修改，于是`af-conf`上场了
 
 ## 使用方法
 本工具由python编写，除了zookeeper包，其它无特殊依赖库。zookeeper包使用的是：
@@ -11,7 +14,7 @@
 配置文件使用`.ini`文件，示例如下：
 
 	[sdkapi]
-	command = php xxx.php
+	command = /usr/bin/php xxx.php
 	chdir = ./
 	path.db_master = /anfeng/dev/database/sdk/master
 	path.db_slave = /anfeng/dev/database/sdk/slave
@@ -27,7 +30,7 @@
 
 当监听到配置文件有更改时，会将配置文件的内容保存为文件，并将文件路径和`path.[key]`中的`key`传递给`command`脚本，例如：
 
-	php xxx.php mongodb_user_messages /tmp/af-conf/anfeng/dev/mongodb/sdk/user_messages/2.json
+	/usr/bin/php xxx.php mongodb_user_messages /tmp/af-conf/anfeng/dev/mongodb/sdk/user_messages/2.json
 
 此时在`xxx.php`脚本中通过argv[1]能拿到`path.[key]`中的`key`，argv[2]能拿到配置文件的路径，脚本在调用成功之后必须输出`OK`并返回状态码`0`，否则将会每隔`60`秒重试
 
