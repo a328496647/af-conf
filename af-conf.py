@@ -60,7 +60,7 @@ def conf_command(cmd, args, chdir):
     code = result[0]
     text = result[1]
 
-    if text != 'SUCCESS' or code != 0:
+    if text != 'OK' or code != 0:
         log('command:conf:fail', {'cmd': cmd, 'chdir': chdir, 'returncode': code, 'text': text}, 'ERROR')
         return False
     else:

@@ -29,7 +29,7 @@
 
 	php xxx.php mongodb_user_messages /tmp/af-conf/anfeng/dev/mongodb/sdk/user_messages/2.json
 
-此时在`xxx.php`脚本中通过argv[1]能拿到`path.[key]`中的`key`，argv[2]能拿到配置文件的路径，脚本在调用成功之后必须输出`SUCCESS`并返回状态码`0`，否则将会每隔`60`秒重试
+此时在`xxx.php`脚本中通过argv[1]能拿到`path.[key]`中的`key`，argv[2]能拿到配置文件的路径，脚本在调用成功之后必须输出`OK`并返回状态码`0`，否则将会每隔`60`秒重试
 
 ### 启动监听脚本
 
@@ -47,13 +47,13 @@
 
 示例（项目目录下有一个demo）：
 
-	python ./../af-conf.py --server=127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
+	python ./../af-conf.py --s 127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
 
-## 进程自身的配置
+## `af-conf`自身的配置
 `af-conf`解决的问题就是集中管理多台服务器上的配置文件，那么`af-conf`本身的配置怎么去管理？`af-conf`自身的配置也是通过zookeeper节点来设置，它的zookeeper节点名称为：`/af-conf`，节点值为json格式。
 
 	{
 		"restart":true
 	｝
 
-1. `restart`，如果标记为true，则`af-conf`进程本身会被重启
+`restart`，如果标记为true，则`af-conf`进程本身会被重启

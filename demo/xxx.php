@@ -1,3 +1,3 @@
 <?php
-echo 'SUCCESS';
+echo 'OK';
 exit(0);
