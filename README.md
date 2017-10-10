@@ -50,7 +50,7 @@
 
 示例（demo）：
 
-	python ./../af-conf.py --s 127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
+	python ./../af-conf.py -s 127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
 
 ## `af-conf`自身的配置
 `af-conf`解决的问题就是集中管理多台服务器上的配置文件，那么`af-conf`本身的配置怎么去管理？`af-conf`自身的配置也是通过zookeeper节点来设置，它的zookeeper节点名称为：`/af-conf`，节点值为json格式。
