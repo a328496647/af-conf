@@ -45,7 +45,7 @@
 2. `-o, output` 当监听到配置文件发生变化时，将配置文件何存在何处
 3. `-h, help` 显示帮助
 
-示例（项目目录下有一个demo）：
+示例（demo）：
 
 	python ./../af-conf.py --s 127.0.0.1:2181 -o /tmp/af-conf ./af-conf.conf
 
