@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link type="text/css" rel="stylesheet" href="/static/common.css"/>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+<div style="overflow: hidden">
+    <div style="float: left;">
+        <a href="/"{{ ' style="font-weight: bold;"'|safe if __path__ == '/' }}>Server</a>
+        <a href="/node"{{ ' style="font-weight: bold;"'|safe if __path__ == '/node' }}>Node</a>
+        <a href="/control"{{ ' style="font-weight: bold;"'|safe if __path__ == '/control' }}>Control</a>
+    </div>
+</div>
+
+<div style="margin-top: 10px;">
+    {% block body %}{% endblock %}
+</div>
+
+<script type="text/javascript" src="/static/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="/static/common.js"></script>
+<script type="text/javascript">
+    var messages = []
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                messages.push('{{ message|safe }}')
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    if(messages.length > 0) {
+        alert(messages.join('\n'));
+    }
+</script>
+{% block foot %}{% endblock %}
+</body>
+</html>

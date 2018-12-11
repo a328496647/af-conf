@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}af-conf{% endblock %}
+{% block head %}
+<style type="text/css">
+    table {
+        border:0;
+    }
+    th,td {
+        padding-right: 8px;
+        border:0;
+    }
+    fieldset {
+        border:1px solid black;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+
+{{ server.name }} {{ '<span style="color:green">Online</span>'|safe if server.online else '<span style="color:grey">Offline</span>'|safe }}
+
+{% for name in server.info %}
+    <fieldset style="margin-top:10px;">
+        <legend style="margin-left:15px; padding: 0 10px; border:1px solid black">{{ name }}</legend>
+        <table>
+            <tbody>
+            {% for item in server.info[name] %}
+                <tr>
+                    <td>{{ item['path'] }}</td>
+                    <td>{{ item['key'] }}</td>
+                    <td style="color: red">
+                        {% if item['state'] == 'NodeNotExists' %}
+                            "{{ item['path'] }}" not exists
+                        {% elif item['state'] == 'NotNotified' %}
+                            Not notified
+                        {% elif item['state'] == 'NotifyFail' %}
+                            Notification failed: returncode:{{ item['returncode'] }},text:{{ item['text'] }}
+                        {% elif item['state'] == 'VersionNotMatch' %}
+                            Re-notice: current-version:{{ item['version'] }},latest-version:{{ item['sversion'] }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </fieldset>
+{% endfor %}
+
+{% endblock %}

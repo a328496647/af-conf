@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}add-node{% endblock %}
+{% block head %}
+<style type="text/css">
+
+</style>
+{% endblock %}
+
+{% block body %}
+
+<form method="post" action="" id="node-form">
+    <div style="margin-top:10px;">Node Path: <span style="color:green">In "{{ basepath }}" path</span></div>
+    <input style="width:100%;" type="text" name="path" value="{{ formdata.path }}">
+
+    <div style="margin-top:10px;">Node Data:</div>
+    <textarea style="width:100%;" rows="35" name="data">{{ formdata.data }}</textarea>
+
+    <div style="margin-top:10px;">
+        <input type="submit" value="Save">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <span style="color: red;text-decoration: underline;">{{ message }}</span>
+                    {% if not loop.last %}&{% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <input type="checkbox" name="aaa" value="1">
+    <input type="checkbox" name="aaa" value="2">
+    <input type="checkbox" name="aaa" value="3">
+</form>
+
+{% endblock %}
+
+{% block foot %}
+<script type="text/javascript">
+$(document).ready(function () {
+    function resize() {
+        var width = $('#node-form').width();
+        $('#node-form textarea[name=data]').outerWidth(width);
+        $('#node-form input[name=path]').outerWidth(width);
+    }
+
+    $(window).on('resize', resize);
+
+    resize();
+});
+</script>
+{% endblock %}

@@ -12,30 +12,81 @@ import Queue
 import signal
 import traceback
 
-G = {
-    'name':'',
-    'output': '.',
-    'server': '',
-    'project': {},
-    'queue': Queue.PriorityQueue(maxsize = 0),
-    'nodever': {},
-    'config': {},
-    'zookeeper': None,
-}
+"""
+全局变量
+"""
+class G:
+    name = ''
+    tmp_dir = ''
+    zookeeper_server = ''
+    project = {}
+    queue = Queue.PriorityQueue(maxsize = 0)
+    nodever = {}
+    config = {}
+    zk = None
 
-AF_CONF_NODE = '/af-conf'
+class FilePath(str):
+    def split(self, s):
+        return str.split(self, s)[1:]
 
-def help():
-    print 'Using: %s [OPTIONS] [conf...]\n' % (sys.argv[0])
-    print '  -s, server     zookeeper server(host:port), use "," separated'
-    print '  -o, output     config file output directory'
-    print '  -n, name       set process name(unique), do not use "/"'
-    print '  -h, help       show help'
-    sys.exit(0)
+    def __div__(self, p):
+        p1 = str(p).strip('/')
+        p2 = self.rstrip('/')
 
+        if p1 == '':
+            return FilePath(p2)
+        elif p2 != '/':
+            return FilePath(p2 + '/' + p1)
+        else:
+            return FilePath(p2 + p1)
+
+ROOT_NODE = FilePath('/af-conf')
+SERVIE_NODE = ROOT_NODE / 'server'
+ONLINE_NODE = ROOT_NODE / 'online'
+CONFIG_NODE = ROOT_NODE / 'config'
+
+"""
+输出日志
+"""
 def log(keyword, data, level = 'DEBUG'):
     print datetime.now().strftime('%Y-%m-%d %H:%M:%S'), level, keyword, json.dumps(data)
 
+"""
+设置zookeeper节点
+option.nocreate     bool 如果不存在时是否创建
+option.ephemeral    bool 创建临时节点
+option.parent_perms int  parent perms
+"""
+def zookeeper_node_set(nodepath, nodevalue, perms, **option):
+    ephemeral = 0
+    if option.has_key('ephemeral') and option['ephemeral']:
+        ephemeral = zookeeper.EPHEMERAL
+
+    parent_perms = perms
+    if option.has_key('parent_perms'):
+        parent_perms = option['parent_perms']
+
+    p = FilePath('/')
+
+    for v in nodepath.split('/'):
+        p = p / v
+
+        if not zookeeper.exists(G.zookeeper, p):
+            if not option.has_key('nocreate') or not option['nocreate']:
+                if p == nodepath:
+                    print zookeeper.create(G.zookeeper, p, nodevalue, [{"perms":perms, "scheme":"world", "id":"anyone"}], ephemeral)
+                    return True
+                else:
+                    zookeeper.create(G.zookeeper, p, '', [{"perms":parent_perms, "scheme":"world", "id":"anyone"}], 0)
+        elif p == nodepath:
+            print zookeeper.set(G.zookeeper, p, nodevalue)
+            return True
+
+    return False
+
+"""
+执行系统命令
+"""
 def command(cmd, args = [], chdir = None, timeout = 10):
     if len(args):
         cmd = cmd + ' ' + ' '.join(args)
@@ -59,9 +110,12 @@ def command(cmd, args = [], chdir = None, timeout = 10):
 
     return (code, text)
 
+"""
+通过执行命令通知应用程序配置文件有更新
+"""
 def conf_command(data):
     cmd = data['cmd']
-    args = data['args']
+    args = [data['key'], data['file']]
     chdir = data['chdir']
 
     res = command(cmd, args, chdir, 10)
@@ -83,32 +137,32 @@ def conf_command(data):
         v['result'] = False
     else:
         v['result'] = True
-    
-    node = AF_CONF_NODE + '/' + G['name'] + '/' + data['nodepath'][1:].replace('/', '|')
 
-    if not zookeeper.exists(G['zookeeper'], node):
-        zookeeper.create(G['zookeeper'], node, json.dumps(v), [{"perms":zookeeper.PERM_ALL, "scheme":"world", "id":"anyone"}], 0)
-    else:
-        zookeeper.set(G['zookeeper'], node, json.dumps(v))
+    zookeeper_node_set(SERVIE_NODE / G.name / 'project' / data['name'] / data['key'], json.dumps(v), zookeeper.PERM_ALL)
 
     return result
 
-def zookeeper_node_change(nodevalue, nodepath):
+"""
+当zookeeper节点（配置文件）有变化时调用
+"""
+def on_zookeeper_node_change(nodevalue, nodepath):
     log('zookeeper:get', {'nodepath': nodepath, 'nodeinfo': nodevalue[1]}, 'DEBUG')
 
     version = nodevalue[1]['version']
-    file = os.path.abspath(G['output'] + nodepath + os.sep + str(version))
+    file = os.path.abspath(G.tmp_dir + nodepath + os.sep + str(version))
     open(file, 'w').write(nodevalue[0]);
     
-    G['nodever'][nodepath] = version
+    G.nodever[nodepath] = version
 
     log('write:file', {'file': file}, 'DEBUG')
 
-    for project in G['project'][nodepath]:
+    for project in G.project[nodepath]:
         qdata = {
             'type': 'conf_command', 
-            'cmd': project['command'], 
-            'args': [project['key'], file], 
+            'cmd': project['command'],
+            'name': project['name'],
+            'key': project['key'],
+            'file': file,
             'nodepath': nodepath, 
             'nodeinfo': nodevalue[1]
         }
@@ -116,9 +170,11 @@ def zookeeper_node_change(nodevalue, nodepath):
         if project.has_key('chdir'):
             qdata['chdir'] = project['chdir'];
 
-        G['queue'].put((0, qdata))
+        G.queue.put((0, qdata))
 
 """
+zookeeper 事件回调方法
+
 state=-112  zookeeper.EXPIRED_SESSION_STATE 会话超时状态
 state=-113  zookeeper.AUTH_FAILED_STATE     认证失败状态
 state=1     zookeeper.CONNECTING_STATE      连接建立中
@@ -139,139 +195,142 @@ def watcher(zk, type, state, nodepath):
     if type == zookeeper.SESSION_EVENT:
         zookeeper.set_watcher(zk, watcher)
         if state == zookeeper.CONNECTED_STATE:
-            for k in G['project']:
+            for k in G.project:
                 if zookeeper.exists(zk, k, watcher):
-                    zookeeper_node_change(zookeeper.get(zk, k), k) # 启动时马上就通知一次，防止在断线过程中出现了数据更改，而服务又不知道
+                    # 启动时马上就通知一次，防止在断线过程中出现了数据更改，而服务又不知道
+                    on_zookeeper_node_change(zookeeper.get(zk, k), k)
                     
-            if zookeeper.exists(zk, AF_CONF_NODE, watcher):
-                try:
-                    G['config'] = json.loads(zookeeper.get(zk, AF_CONF_NODE)[0])
-                    if not isinstance(G['config'], dict):
+            if zookeeper.exists(zk, ROOT_NODE, watcher):
+                config = zookeeper.get(zk, ROOT_NODE)[0]
+                if config != '':
+                    G.config = json.loads(config)
+                    if not isinstance(G.config, dict):
                         raise TypeError()
-                except BaseException, e:
-                    log('config:error', '"' + AF_CONF_NODE + '" is invalid format', 'ERROR')
-                    return
+                else:
+                    G.config = {}
 
-                log('config', G['config'], 'DEBUG')
+                log('config', G.config, 'DEBUG')
     elif type == zookeeper.CREATED_EVENT or type == zookeeper.CHANGED_EVENT:
         nodevalue = zookeeper.get(zk, nodepath, watcher)
-        if nodepath == AF_CONF_NODE:
-            try:
-                G['config'] = json.loads(nodevalue[0])
-                if not isinstance(G['config'], dict):
+        if nodepath == ROOT_NODE:
+            if nodevalue[0] != '':
+                G.config = json.loads(nodevalue[0])
+                if not isinstance(G.config, dict):
                     raise TypeError()
-            except BaseException, e:
-                log('config:error', '"' + AF_CONF_NODE + '" is invalid format', 'ERROR')
-                return
+            else:
+                G.config = {}
 
-            log('config', G['config'], 'DEBUG')
+            log('config', G.config, 'DEBUG')
 
             # restart process
-            if G['config'].has_key('restart') and G['config']['restart'] == True:
-                G['queue'].put((0, {'type': 'restart'}))
+            if G.config.has_key('restart') and G.config['restart'] in [True, G.name]:
+                G.queue.put((0, {'type': 'restart'}))
         else:
-            zookeeper_node_change(nodevalue, nodepath)
+            on_zookeeper_node_change(nodevalue, nodepath)
     elif type == zookeeper.DELETED_EVENT:
         zookeeper.exists(zk, nodepath, watcher) # 期待再次创建节点
 
-def set_process_status(status):
-    if G['zookeeper'] != None:
-        nodepath = AF_CONF_NODE + '/' + G['name']
-        nodevalue = {'status': status, 'nodes': G['project']}
-        if not zookeeper.exists(G['zookeeper'], nodepath):
-            zookeeper.create(G['zookeeper'], nodepath, json.dumps(nodevalue), [{"perms": zookeeper.PERM_ALL, "scheme": "world", "id": "anyone"}], 0)
-        else:
-            zookeeper.set(G['zookeeper'], nodepath, json.dumps(nodevalue))
-
+"""
+程序退出方法
+"""
 def quit(code):
-    try:
-        if G['zookeeper'] != None:
-            set_process_status('closed')
-            zookeeper.close(G['zookeeper'])
-            G['zookeeper'] = None
-    except BaseException:
-        pass
+    if G.zookeeper != None:
+        zookeeper.close(G.zookeeper)
+        G.zookeeper = None
 
     log('quit', [], 'DEBUG')
     sys.exit(code)
 
+"""
+进程信号回调方法
+"""
 def signal_handler(s, f):
     quit(0)
 
-# listen signal
-signal.signal(signal.SIGTERM, signal_handler) # kill
-signal.signal(signal.SIGINT, signal_handler)  # ctrl+c
-
-# parse command line arguments
 try:
-    options, files = getopt.getopt(sys.argv[1:], 'hn:s:o:', ['help', 'name=', 'server=', 'output='])
-except getopt.GetoptError:
-    help()
+    if len(sys.argv) == 1:
+        raise BaseException('Using: %s <file>\n' % (sys.argv[0]))
 
-try:
-    for key, val in options:
-        if key in ['-s', '-server']:
-            G['server'] = val
-        elif key in ['-o', '--output']:
-            if val[-1:] == os.sep:
-                G['output'] = os.path.abspath(val[:-1])
+    if not os.path.exists(sys.argv[1]):
+        raise BaseException('cannot open "%s": No such file or directory' % (sys.argv[1]))
+
+    # 注册进程信号监听函数
+    signal.signal(signal.SIGTERM, signal_handler) # kill
+    signal.signal(signal.SIGINT, signal_handler)  # ctrl+c)
+
+    # 读取配置文件
+    config = ConfigParser.ConfigParser()
+    config.read(sys.argv[1])
+
+    # 解析common段配置
+    # common.name: 进程名称，这必须唯一
+    # common.zookeeper_server zookeeper服务的host
+    # common.tmp_dir 创建临时文件的目录
+    for item in config.items('common'):
+        if item[0] == 'name':
+            G.name = item[1]
+        elif item[0] == 'zookeeper_server':
+            G.zookeeper_server = item[1]
+        elif item[0] == 'tmp_dir':
+            G.tmp_dir = item[1]
+
+    # 判断临时目录是否可用
+    if G.tmp_dir == '':
+        raise BaseException('"tmp_dir" is not set, on "common" section')
+
+    if not os.path.exists(G.tmp_dir):
+        os.makedirs(G.tmp_dir)
+    elif not os.access(G.tmp_dir, os.W_OK):
+        raise BaseException('cannot open "%s": Permission denied' % (G.tmp_dir))
+
+    # 读取配置文件其它段
+    for section in config.sections():
+        if section == 'common': continue
+
+        path = {}
+        project = {'name': section}
+        for item in config.items(section):
+            if item[0][0:5] == 'path.':
+                path[item[0][5:]] = CONFIG_NODE / item[1]
             else:
-                G['output'] = os.path.abspath(val)
+                project[item[0]] = item[1]
 
-            if not os.path.exists(G['output']):
-                raise IOError('Output directory "'+ G['output'] +'": No such directory')
+        if not project.has_key('command'):
+            raise BaseException('The configuration file "%s" is missing the "command" parameter in the "%s" section' % (file, section))
 
-            if not os.access(G['output'], os.W_OK):
-                raise IOError('Output directory "'+ G['output'] +'": Permission denied')
-        elif key in ['-n', '--name']:
-            G['name'] = val
-        elif key in ['-h', '--help']:
-            help()
+        for k in path:
+            p = path[k]
 
-    # verify arguments
-    if G['name'] == '' or G['name'].find('/') >= 0:
-        help()
-    elif G['output'] == '':
-        help()
-    elif G['server'] == '':
-        help()
+            _project = project.copy()
+            _project.update({'key':k})
+            
+            if not os.path.exists(G.tmp_dir + p):
+                os.makedirs(G.tmp_dir + p)
 
-    # read config file
-    for file in files:
-        config = ConfigParser.ConfigParser()
-        config.read(file)
-        for section in config.sections():
-            paths = {}
-            project = {'name': section}
-            for item in config.items(section):
-                if item[0][0:5] == 'path.':
-                    paths[item[0][5:]] = item[1]
-                else:
-                    project[item[0]] = item[1]
+            if not G.project.has_key(p):
+                G.project[p] = []
 
-            if not project.has_key('command'):
-                raise StandardError('The configuration file "'+file+'" is missing the "command" parameter in the "'+section+'" section')
+            G.project[p].append(_project)
 
-            for key in paths:
-                pro = project.copy()
-                pro.update({'key':key})
-                
-                if not os.path.exists(G['output'] + paths[key]):
-                    os.makedirs(G['output'] + paths[key])
+    # zookeeper 连接
+    G.zookeeper = zookeeper.init(G.zookeeper_server, watcher)
 
-                if not G['project'].has_key(paths[key]):
-                    G['project'][paths[key]] = []
+    # /service/<name>
+    zookeeper_node_set(SERVIE_NODE / G.name, json.dumps(G.project), zookeeper.PERM_ALL)
+    # /online/<name>
+    nodepath = ONLINE_NODE / G.name
+    if zookeeper.exists(G.zookeeper, nodepath):
+        raise BaseException('The same service has been run in other places')
+    zookeeper_node_set(nodepath, '', zookeeper.PERM_READ, ephemeral = True, parent_perms = zookeeper.PERM_ALL)
+except BaseException, e:
+    print e.message
+    sys.exit(0)
 
-                G['project'][paths[key]].append(pro)
-
-    # zookeeper connect
-    G['zookeeper'] = zookeeper.init(G['server'], watcher)
-    set_process_status('running')
-
-    # queue handle
+try:
+    # 队列消费程序
     while True:
         try:
-            qitem = G['queue'].get(block = False)
+            qitem = G.queue.get(block = False)
         except Queue.Empty:
             time.sleep(1)
             continue
@@ -283,18 +342,19 @@ try:
 
         if priority > 0 and priority > timestamp:
             time.sleep(1)
-            G['queue'].put((priority, data))
+            G.queue.put((priority, data))
             continue
             
         log('queue', qitem, 'DEBUG')
 
         # execute conf-command
         if data['type'] == 'conf_command':
-            if data['nodeinfo']['version'] < G['nodever'][data['nodepath']]:
+            if data['nodeinfo']['version'] < G.nodever[data['nodepath']]:
                 continue
             result = conf_command(data)
         # restart process
         elif data['type'] == 'restart':
+            zookeeper.close(G.zookeeper)
             python = sys.executable
             os.execl(python, python, * sys.argv)
 
@@ -305,7 +365,7 @@ try:
             else:
                 data['num'] = 1
 
-            G['queue'].put((timestamp + 60, data))
+            G.queue.put((timestamp + 60, data))
 except SystemExit:
     pass
 except BaseException, e:

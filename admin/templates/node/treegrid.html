@@ -1,0 +1,20 @@
+<tr>
+    <td>{{ node.__sep__|safe }}{{ node.name|safe }}</td>
+    <td>{{ node.info.czxid }}</td>
+    <td>{{ node.info.pzxid }}</td>
+    <td>{{ node.info.mzxid }}</td>
+    <td>{{ node.info.ephemeralOwner }}</td>
+    <td>{{ node.info.ctime|datetime }}</td>
+    <td>{{ node.info.mtime|datetime }}</td>
+    <td>{{ node.info.aversion }}</td>
+    <td>{{ node.info.cversion }}</td>
+    <td>{{ node.info.version }}</td>
+    <td>
+        <a href="/node/add?path={{ node.path|url_quote }}">Add</a>
+        {% if node.path != '/' %}
+        <a href="/node/modify?path={{ node.path|url_quote }}">Modify</a>
+        <a href="/?path={{ node.path|url_quote }}">Server</a>
+        <a href="/node/delete?path={{ node.path|url_quote }}" onclick="return confirm('Are you sure want to delete it?')">Delete</a>
+        {% endif %}
+    </td>
+</tr>

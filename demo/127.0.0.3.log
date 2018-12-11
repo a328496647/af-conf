@@ -1,0 +1,23 @@
+02017-10-31 15:31:06
+/af-conf/online/127.0.0.3
+ DEBUG watcher {"nodepath": "", "state": 3, "type": -1}
+2017-10-31 15:31:06 DEBUG zookeeper:get {"nodeinfo": {"pzxid": 3061, "ctime": 1509417599506, "aversion": 0, "mzxid": 3061, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417599506, "cversion": 0, "czxid": 3061}, "nodepath": "/af-conf/config/test/db/slave"}
+2017-10-31 15:31:06 DEBUG write:file {"file": "/tmp/af-conf/af-conf/config/test/db/slave/0"}
+2017-10-31 15:31:06 DEBUG zookeeper:get {"nodeinfo": {"pzxid": 3058, "ctime": 1509417587091, "aversion": 0, "mzxid": 3058, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417587091, "cversion": 0, "czxid": 3058}, "nodepath": "/af-conf/config/test/db/master"}
+2017-10-31 15:31:06 DEBUG write:file {"file": "/tmp/af-conf/af-conf/config/test/db/master/0"}
+2017-10-31 15:31:06 DEBUG zookeeper:get {"nodeinfo": {"pzxid": 3064, "ctime": 1509417613889, "aversion": 0, "mzxid": 3064, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417613889, "cversion": 0, "czxid": 3064}, "nodepath": "/af-conf/config/test/db/redis"}
+2017-10-31 15:31:06 DEBUG write:file {"file": "/tmp/af-conf/af-conf/config/test/db/redis/0"}
+2017-10-31 15:31:06 DEBUG config {"restart": "127.0.0.8"}
+2017-10-31 15:31:07 DEBUG queue [0, {"key": "mysql_write", "nodepath": "/af-conf/config/test/db/master", "chdir": "./", "name": "sdkapi-appapi", "nodeinfo": {"pzxid": 3058, "ctime": 1509417587091, "aversion": 0, "mzxid": 3058, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417587091, "cversion": 0, "czxid": 3058}, "cmd": "php xxx.php", "file": "/tmp/af-conf/af-conf/config/test/db/master/0", "type": "conf_command"}]
+2017-10-31 15:31:08 DEBUG command {"returncode": 0, "text": "OK", "cmd": "php xxx.php mysql_write /tmp/af-conf/af-conf/config/test/db/master/0", "chdir": "./"}
+0
+2017-10-31 15:31:08 DEBUG queue [0, {"key": "mysql_write", "nodepath": "/af-conf/config/test/db/master", "chdir": "./", "name": "sdkapi-message-service", "nodeinfo": {"pzxid": 3058, "ctime": 1509417587091, "aversion": 0, "mzxid": 3058, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417587091, "cversion": 0, "czxid": 3058}, "cmd": "php xxx.php", "file": "/tmp/af-conf/af-conf/config/test/db/master/0", "type": "conf_command"}]
+2017-10-31 15:31:08 DEBUG command {"returncode": 0, "text": "OK", "cmd": "php xxx.php mysql_write /tmp/af-conf/af-conf/config/test/db/master/0", "chdir": "./"}
+0
+2017-10-31 15:31:08 DEBUG queue [0, {"key": "queue", "nodepath": "/af-conf/config/test/db/redis", "chdir": "./", "name": "sdkapi-appapi", "nodeinfo": {"pzxid": 3064, "ctime": 1509417613889, "aversion": 0, "mzxid": 3064, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417613889, "cversion": 0, "czxid": 3064}, "cmd": "php xxx.php", "file": "/tmp/af-conf/af-conf/config/test/db/redis/0", "type": "conf_command"}]
+2017-10-31 15:31:08 DEBUG command {"returncode": 0, "text": "OK", "cmd": "php xxx.php queue /tmp/af-conf/af-conf/config/test/db/redis/0", "chdir": "./"}
+0
+2017-10-31 15:31:08 DEBUG queue [0, {"key": "queue", "nodepath": "/af-conf/config/test/db/redis", "chdir": "./", "name": "sdkapi-message-service", "nodeinfo": {"pzxid": 3064, "ctime": 1509417613889, "aversion": 0, "mzxid": 3064, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417613889, "cversion": 0, "czxid": 3064}, "cmd": "php xxx.php", "file": "/tmp/af-conf/af-conf/config/test/db/redis/0", "type": "conf_command"}]
+2017-10-31 15:31:08 DEBUG command {"returncode": 0, "text": "OK", "cmd": "php xxx.php queue /tmp/af-conf/af-conf/config/test/db/redis/0", "chdir": "./"}
+0
+2017-10-31 15:31:08 DEBUG queue [0, {"key": "redis", "nodepath": "/af-conf/config/test/db/redis", "chdir": "./", "name": "sdkapi-appapi", "nodeinfo": {"pzxid": 3064, "ctime": 1509417613889, "aversion": 0, "mzxid": 3064, "numChildren": 0, "ephemeralOwner": 0, "version": 0, "dataLength": 0, "mtime": 1509417613889, "cver

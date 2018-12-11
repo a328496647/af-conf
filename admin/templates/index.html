@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block title %}af-conf{% endblock %}
+{% block head %}
+<style type="text/css">
+    table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width:100%;
+    }
+    th,td {
+        border:1px solid #E4E4E4;
+        padding:5px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="padding: 5px;background-color: #EFEFEF; overflow: hidden;">
+    <form method="get" action="/">
+        <label>
+            Name:
+            <input type="text" name="name" value="{{ searchdata.name }}" placeholder="%name%">
+        </label>
+        &nbsp;
+        <label>
+            State:
+            <select name="state">
+                <option value=""></option>
+                <option value="Normal"{{ ' selected' if searchdata.state == 'Normal' }}>Normal</option>
+                <option value="Abnormal"{{ ' selected' if searchdata.state == 'Abnormal' }}>Abnormal</option>
+            </select>
+        </label>
+        &nbsp;
+        <label>
+            Online:
+            <select name="online">
+                <option value=""></option>
+                <option value="Yes"{{ ' selected' if searchdata.online == 'Yes' }}>Yes</option>
+                <option value="No"{{ ' selected' if searchdata.online == 'No' }}>No</option>
+            </select>
+        </label>
+
+        &nbsp;
+
+        <label>
+            Node:
+            <input type="text" name="path" value="{{ searchdata.path }}" placeholder="/path">
+        </label>
+
+        <input type="submit" value="searce">
+    </form>
+</div>
+
+<table style="margin-top:10px;">
+    <thead style="background-color: #EFEFEF">
+        <tr>
+            <th>name</th>
+            <th>State</th>
+            <th>Online?</th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for key in data %}
+        <tr>
+            <td><a href="/server/info?name={{ data[key].name|url_quote }}">{{ data[key].name }}</a></td>
+            <td><span{{' style="color:red"'|safe if data[key].state == 'Abnormal' }}>{{ data[key].state }}</span></td>
+            <td>{{ '<span style="color:green">Yes</span>'|safe if data[key].online else '<span style="color:grey">No</span>'|safe }}</td>
+            <td>
+                {% if not data[key].online %}
+                <a href="/server/delete?name={{ data[key].name|url_quote }}" onclick="return confirm('Are you sure want to delete it?')">Delete</a>
+                {% else %}
+                <span style="color: grey">Delete</span>
+                {% endif %}
+
+                {% if data[key].online %}
+                <a href="/server/restart?name={{ data[key].name|url_quote }}">Restart</a>
+                {% else %}
+                <span style="color: grey">Restart</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

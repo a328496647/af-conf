@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+{% block title %}af-conf{% endblock %}
+{% block head %}
+<style type="text/css">
+    table {
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+    th {
+        text-align:left;
+    }
+    th, td {
+        padding:0px 15px 0px 0;
+    }
+
+    tr:hover {
+        background-color:#EFEFEF;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="padding: 5px;background-color: #EFEFEF; overflow: hidden;">
+    <div style="float: left">
+        <form method="get" action="?">
+            <label>
+                Path:<input type="text" name="path" value="{{ search.path }}" placeholder="%path%">
+            </label>
+
+            <input type="submit" value="Search">
+        </form>
+    </div>
+    <div style="float: right">
+
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Path</th>
+            <th>czxid</th>
+            <th>pzxid</th>
+            <th>mzxid</th>
+            <th>ephemeralOwner</th>
+            <th>ctime</th>
+            <th>mtime</th>
+            <th>aversion</th>
+            <th>cversion</th>
+            <th>version</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ data|node_treegrid|safe }}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block foot %}
+<script type="text/javascript">
+
+</script>
+{% endblock %}

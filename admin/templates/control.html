@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}af-conf{% endblock %}
+{% block head %}
+<style type="text/css">
+
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="padding: 10px 0;text-align: center;background-color: #EFEFEF; margin-top:10px;">
+    <form method="post" action="/control">
+        <input type="submit" name="restart" value="All Restart">
+    </form>
+</div>
+{% endblock %}
